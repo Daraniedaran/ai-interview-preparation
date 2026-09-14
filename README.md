@@ -199,6 +199,14 @@ powershell -ExecutionPolicy Bypass -File run_tests.ps1
 
 ---
 
+## 🚀 Deployment
+
+The project includes ready-to-deploy configurations for **Render** (Free tier, single-service Docker setup) and Docker Compose.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for step-by-step instructions to deploy live on Render in under 3 minutes.
+
+---
+
 ## 🎨 Color Palette
 
 | Color | Hex |

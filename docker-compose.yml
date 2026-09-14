@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-interview-portal
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - SECRET_KEY=production-secret-change-me-to-a-random-hex-32-string
+      - DATABASE_URL=sqlite:///./ai_interview.db
+      - ALLOWED_ORIGINS=*
+      # - OPENAI_API_KEY=your_key_here
+      # - CLOUDINARY_CLOUD_NAME=
+      # - CLOUDINARY_API_KEY=
+      # - CLOUDINARY_API_SECRET=
+      # - JUDGE0_API_KEY=
+    restart: unless-stopped

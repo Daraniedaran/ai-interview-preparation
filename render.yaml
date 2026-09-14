@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: ai-interview-portal
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:///./ai_interview.db
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      # Optional external integrations (can be filled in Render Dashboard):
+      # - key: OPENAI_API_KEY
+      #   sync: false
+      # - key: CLOUDINARY_CLOUD_NAME
+      #   sync: false
+      # - key: CLOUDINARY_API_KEY
+      #   sync: false
+      # - key: CLOUDINARY_API_SECRET
+      #   sync: false
+      # - key: JUDGE0_API_KEY
+      #   sync: false
