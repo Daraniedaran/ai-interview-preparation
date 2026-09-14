@@ -31,7 +31,7 @@ const NotificationsPage = () => {
   const markReadMutation = useMutation({
     mutationFn: (id) => notificationService.markRead(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['notifications-list'])
+      queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
     },
   })
 
@@ -39,7 +39,7 @@ const NotificationsPage = () => {
     mutationFn: notificationService.markAllRead,
     onSuccess: () => {
       toast.success('All notifications marked as read')
-      queryClient.invalidateQueries(['notifications-list'])
+      queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
     },
   })
 
@@ -47,7 +47,7 @@ const NotificationsPage = () => {
     mutationFn: (id) => notificationService.delete(id),
     onSuccess: () => {
       toast.success('Notification removed')
-      queryClient.invalidateQueries(['notifications-list'])
+      queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
     },
   })
 
@@ -108,7 +108,7 @@ const NotificationsPage = () => {
           ))
         ) : listData.length > 0 ? (
           listData.map((item) => {
-            const IconComponent = notificationIcons[item.type] || RiInformationLine
+            const IconComponent = notificationIcons[item.notification_type] || notificationIcons[item.type] || RiInformationLine
             return (
               <motion.div
                 key={item.id}

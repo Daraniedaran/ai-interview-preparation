@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { companyService } from '../../services'
-import { motion } from 'framer-motion'
 import { 
   RiBuildingLine, 
   RiAddLine, 
@@ -15,6 +14,7 @@ import toast from 'react-hot-toast'
 const AdminCompaniesPage = () => {
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [editing, setEditing] = useState(null)
   const [name, setName] = useState('')
   const [pkg, setPkg] = useState('')
   const [description, setDescription] = useState('')
@@ -30,20 +30,48 @@ const AdminCompaniesPage = () => {
     mutationFn: (data) => companyService.create(data),
     onSuccess: () => {
       toast.success('Company added')
-      queryClient.invalidateQueries(['admin-companies-list'])
+      queryClient.invalidateQueries({ queryKey: ['admin-companies-list'] })
       setShowModal(false)
+      setName(''); setPkg(''); setDescription(''); setEditing(null)
     },
+    onError: (e) => toast.error(e?.response?.data?.detail || 'Create failed'),
   })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => companyService.update(id, data),
+    onSuccess: () => {
+      toast.success('Company updated')
+      queryClient.invalidateQueries({ queryKey: ['admin-companies-list'] })
+      setShowModal(false)
+      setName(''); setPkg(''); setDescription(''); setEditing(null)
+    },
+    onError: (e) => toast.error(e?.response?.data?.detail || 'Update failed'),
+  })
+
+  const openCreate = () => {
+    setEditing(null); setName(''); setPkg(''); setDescription('')
+    setShowModal(true)
+  }
+
+  const openEdit = (comp) => {
+    setEditing(comp)
+    setName(comp.name || ''); setPkg(comp.avg_salary || ''); setDescription(comp.description || '')
+    setShowModal(true)
+  }
 
   const handleCreate = (e) => {
     e.preventDefault()
     if (!name.trim()) return toast.error('Company name required')
-    createMutation.mutate({
-      name,
-      slug: name.toLowerCase().replace(/\s+/g, '-'),
-      avg_salary: pkg,
-      description,
-    })
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, data: { name, avg_salary: pkg, description } })
+    } else {
+      createMutation.mutate({
+        name,
+        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        avg_salary: pkg,
+        description,
+      })
+    }
   }
 
   return (
@@ -56,7 +84,7 @@ const AdminCompaniesPage = () => {
           <p className="page-subtitle">Manage company recruitment profiles, average packages, and interview patterns</p>
         </div>
 
-        <button onClick={() => setShowModal(true)} className="btn btn-primary">
+        <button onClick={openCreate} className="btn btn-primary">
           <RiAddLine /> Add Company
         </button>
       </div>
@@ -94,7 +122,11 @@ const AdminCompaniesPage = () => {
                     <RiMoneyDollarCircleLine /> {comp.avg_salary || '—'}
                   </div>
                 </div>
-                <button className="btn-icon text-gray-400 hover:text-primary-600">
+                <button
+                  className="btn-icon text-gray-400 hover:text-primary-600"
+                  title="Edit company"
+                  onClick={() => openEdit(comp)}
+                >
                   <RiEditLine />
                 </button>
               </div>
@@ -122,7 +154,7 @@ const AdminCompaniesPage = () => {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="card max-w-md w-full space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-gray-100 dark:border-dark-700">
-              <h3 className="font-bold text-gray-900 dark:text-white">Add Company Profile</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white">{editing ? 'Edit Company' : 'Add Company Profile'}</h3>
               <button onClick={() => setShowModal(false)} className="btn-icon">
                 <RiCloseLine />
               </button>
@@ -167,7 +199,7 @@ const AdminCompaniesPage = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Save Company
+                  {editing ? 'Save Changes' : 'Save Company'}
                 </button>
               </div>
             </form>

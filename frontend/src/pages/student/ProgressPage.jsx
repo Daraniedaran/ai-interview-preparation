@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { dashboardService } from '../../services'
-import { motion } from 'framer-motion'
 import { 
   RiLineChartLine, 
   RiBrainLine, 
@@ -64,13 +63,10 @@ const ProgressPage = () => {
   const skills = charts?.skill_distribution || {}
   const categoryBreakdown = charts?.aptitude_by_category || []
 
-  const readiness = [s.aptitude_score, s.coding_score, s.interview_score, s.resume_score]
-    .filter((v) => typeof v === 'number' && v > 0).length
-    ? Math.round(
-        [s.aptitude_score, s.coding_score, s.interview_score, s.resume_score]
-          .filter((v) => typeof v === 'number')
-          .reduce((a, b) => a + b, 0) / 4
-      )
+  const attemptedScores = [s.aptitude_score, s.coding_score, s.interview_score, s.resume_score]
+    .filter((v) => typeof v === 'number' && v > 0)
+  const readiness = attemptedScores.length
+    ? Math.round(attemptedScores.reduce((a, b) => a + b, 0) / attemptedScores.length)
     : 0
 
   // Last 30 days activity line chart (problems solved + tests completed per day)

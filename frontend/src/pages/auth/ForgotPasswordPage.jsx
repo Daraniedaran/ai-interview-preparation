@@ -17,7 +17,7 @@ const ForgotPasswordPage = () => {
       await authService.forgotPassword(email)
       setSent(true)
       toast.success('Reset link sent!')
-    } catch (err) {
+    } catch {
       toast.error('Failed to send reset email')
     } finally {
       setIsLoading(false)
@@ -43,7 +43,7 @@ const ForgotPasswordPage = () => {
         <RiArrowLeftLine /> Back to login
       </Link>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Forgot password?</h1>
-      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Enter your email and we'll send a reset link.</p>
+      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Enter your email and we&apos;ll send a reset link.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label">Email address</label>

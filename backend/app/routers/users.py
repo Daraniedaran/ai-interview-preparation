@@ -52,10 +52,10 @@ async def upload_avatar(
     """Upload or update profile picture."""
     if file.content_type not in ["image/jpeg", "image/png", "image/webp"]:
         raise HTTPException(status_code=400, detail="Only JPEG, PNG, WebP images allowed")
-    if file.size and file.size > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image must be under 5MB")
 
     file_bytes = await file.read()
+    if len(file_bytes) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image must be under 5MB")
     url = await upload_profile_picture(file_bytes, current_user.id)
     if url:
         current_user.profile_picture = url
@@ -102,6 +102,8 @@ async def add_education(
     current_user: User = Depends(get_current_user),
 ):
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
     edu = Education(**data.model_dump(), profile_id=profile.id)
     db.add(edu)
     db.commit()
@@ -116,6 +118,8 @@ async def delete_education(
     current_user: User = Depends(get_current_user),
 ):
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
     edu = db.query(Education).filter(Education.id == edu_id, Education.profile_id == profile.id).first()
     if not edu:
         raise HTTPException(status_code=404, detail="Education record not found")
@@ -133,6 +137,8 @@ async def add_experience(
     current_user: User = Depends(get_current_user),
 ):
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
     exp = Experience(**data.model_dump(), profile_id=profile.id)
     db.add(exp)
     db.commit()
@@ -147,6 +153,8 @@ async def delete_experience(
     current_user: User = Depends(get_current_user),
 ):
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
     exp = db.query(Experience).filter(Experience.id == exp_id, Experience.profile_id == profile.id).first()
     if not exp:
         raise HTTPException(status_code=404, detail="Experience record not found")
@@ -164,6 +172,8 @@ async def add_project(
     current_user: User = Depends(get_current_user),
 ):
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
     proj = Project(**data.model_dump(), profile_id=profile.id)
     db.add(proj)
     db.commit()
@@ -178,6 +188,8 @@ async def delete_project(
     current_user: User = Depends(get_current_user),
 ):
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
     proj = db.query(Project).filter(Project.id == proj_id, Project.profile_id == profile.id).first()
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -195,6 +207,8 @@ async def add_skill(
     current_user: User = Depends(get_current_user),
 ):
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
     skill = Skill(**data.model_dump(), profile_id=profile.id)
     db.add(skill)
     db.commit()
@@ -209,6 +223,8 @@ async def delete_skill(
     current_user: User = Depends(get_current_user),
 ):
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
     skill = db.query(Skill).filter(Skill.id == skill_id, Skill.profile_id == profile.id).first()
     if not skill:
         raise HTTPException(status_code=404, detail="Skill not found")
@@ -262,6 +278,8 @@ async def toggle_user_active(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Admins cannot deactivate their own account")
     user.is_active = not user.is_active
     db.commit()
     return {"message": f"User {'activated' if user.is_active else 'deactivated'}", "is_active": user.is_active}

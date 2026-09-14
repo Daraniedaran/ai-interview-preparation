@@ -16,6 +16,12 @@ def _user_stats(db: Session, user_id: int) -> dict:
     """Gather the counters used to evaluate achievement conditions."""
     lb = db.query(Leaderboard).filter(Leaderboard.user_id == user_id).first()
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == user_id).first()
+    my_points = lb.total_points if lb else 0
+    # global_rank is computed on-fly (column is never persisted)
+    global_rank = (
+        db.query(Leaderboard).filter(Leaderboard.total_points > my_points).count() + 1
+        if lb else None
+    )
     return {
         "questions_solved": lb.questions_solved if lb else 0,
         "coding_solved": lb.coding_problems_solved if lb else 0,
@@ -23,7 +29,7 @@ def _user_stats(db: Session, user_id: int) -> dict:
         "interviews_completed": lb.interviews_completed if lb else 0,
         "resume_score": profile.resume_score if profile else 0,
         "tests_taken": lb.tests_taken if lb else 0,
-        "global_rank": lb.global_rank if lb else None,
+        "global_rank": global_rank,
     }
 
 

@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  RiDiscussLine, 
-  RiAddLine, 
-  RiThumbUpLine, 
-  RiChat3Line, 
-  RiUser3Line, 
+import {
+  RiDiscussLine,
+  RiAddLine,
+  RiThumbUpLine,
+  RiChat3Line,
+  RiUser3Line,
   RiSearchLine,
   RiSendPlaneLine,
   RiCloseLine,
-  RiDeleteBin6Line
+  RiDeleteBin6Line,
+  RiCheckDoubleLine
 } from 'react-icons/ri'
 import toast from 'react-hot-toast'
 import { discussionService } from '../../services'
@@ -93,6 +94,16 @@ const DiscussionPage = () => {
       toast.success('Post deleted')
     } catch {
       toast.error('Failed to delete post')
+    }
+  }
+
+  const handleToggleSolved = async (post) => {
+    try {
+      const res = await discussionService.toggleSolved(post.id)
+      setPosts(posts.map((p) => (p.id === post.id ? { ...p, is_solved: res.is_solved } : p)))
+      toast.success(res.is_solved ? 'Marked as solved' : 'Marked as unsolved')
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Failed to update solved status')
     }
   }
 
@@ -217,17 +228,29 @@ const DiscussionPage = () => {
                 </div>
 
                 <div className="flex gap-1 items-center">
+                  {post.is_solved && (
+                    <span className="badge badge-success text-[10px] flex items-center gap-1"><RiCheckDoubleLine /> Solved</span>
+                  )}
                   {parseTags(post.tags).map(t => (
                     <span key={t} className="badge badge-gray text-[10px]">{t}</span>
                   ))}
                   {post.user_id === user?.id && (
-                    <button 
-                      onClick={() => handleDeletePost(post.id)} 
-                      className="ml-2 text-gray-400 hover:text-danger-500 transition-colors"
-                      title="Delete post"
-                    >
-                      <RiDeleteBin6Line className="text-sm" />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleToggleSolved(post)}
+                        className="ml-2 text-xs font-semibold text-success-600 hover:text-success-700"
+                        title={post.is_solved ? 'Mark as unsolved' : 'Mark as solved'}
+                      >
+                        {post.is_solved ? 'Reopen' : 'Solve'}
+                      </button>
+                      <button 
+                        onClick={() => handleDeletePost(post.id)} 
+                        className="ml-1 text-gray-400 hover:text-danger-500 transition-colors"
+                        title="Delete post"
+                      >
+                        <RiDeleteBin6Line className="text-sm" />
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

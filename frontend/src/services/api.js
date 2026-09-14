@@ -28,8 +28,10 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+    const url = originalRequest?.url || ''
+    const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register')
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       originalRequest._retry = true
       const refreshToken = localStorage.getItem('refresh_token')
 
@@ -46,20 +48,20 @@ api.interceptors.response.use(
           // Refresh failed — clear tokens and redirect
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
-          window.location.href = '/login'
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login'
+          }
           return Promise.reject(refreshError)
         }
       } else {
-        window.location.href = '/login'
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login'
+        }
       }
     }
 
     // Show toast for common errors (except 401 which is handled above)
     if (error.response?.status !== 401) {
-      const message =
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        'Something went wrong'
       if (error.response?.status >= 500) {
         toast.error('Server error. Please try again.')
       } else if (error.response?.status === 403) {

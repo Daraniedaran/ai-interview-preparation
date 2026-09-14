@@ -7,7 +7,7 @@ from app.models.question import QuestionCategory, Difficulty, QuestionType
 class QuestionBase(BaseModel):
     title: str
     content: Optional[str] = None
-    question_type: QuestionType = QuestionType.SUBJECTIVE
+    question_type: QuestionType = QuestionType.MCQ
     category: QuestionCategory
     difficulty: Difficulty = Difficulty.MEDIUM
     options: Optional[List[str]] = None

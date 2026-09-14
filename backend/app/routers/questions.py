@@ -113,8 +113,15 @@ async def get_question(
     q = db.query(Question).filter(Question.id == question_id, Question.is_active == True).first()
     if not q:
         raise HTTPException(status_code=404, detail="Question not found")
-    q.view_count += 1
+    q.view_count = (q.view_count or 0) + 1
     db.commit()
+    db.refresh(q)
+    bm = db.query(Bookmark).filter(
+        Bookmark.user_id == current_user.id,
+        Bookmark.question_id == q.id,
+        Bookmark.bookmark_type == BookmarkType.QUESTION,
+    ).first()
+    q.bookmarked = bm is not None
     return q
 
 
@@ -177,6 +184,9 @@ async def toggle_bookmark(
     current_user: User = Depends(get_current_user),
 ):
     """Bookmark or unbookmark a question."""
+    q = db.query(Question).filter(Question.id == question_id, Question.is_active == True).first()
+    if not q:
+        raise HTTPException(status_code=404, detail="Question not found")
     existing = db.query(Bookmark).filter(
         Bookmark.user_id == current_user.id,
         Bookmark.question_id == question_id,

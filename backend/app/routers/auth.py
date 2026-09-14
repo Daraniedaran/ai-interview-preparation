@@ -1,8 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from app.database.connection import get_db
+from app.core.dependencies import get_current_user
 from app.core.security import (
     get_password_hash, verify_password, create_access_token,
     create_refresh_token, create_email_verification_token,
@@ -51,7 +53,11 @@ async def register(
         is_verified=False,
     )
     db.add(user)
-    db.flush()  # Get the user ID
+    try:
+        db.flush()  # Get the user ID
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Email or username already registered")
 
     # Create student profile
     profile = StudentProfile(user_id=user.id)
@@ -61,7 +67,11 @@ async def register(
     lb = Leaderboard(user_id=user.id)
     db.add(lb)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Email or username already registered")
     db.refresh(user)
 
     # Send verification email in background
@@ -94,7 +104,7 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
 
     # Store refresh token hash
     user.refresh_token = get_password_hash(refresh_token)
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
 
     return TokenResponse(
@@ -113,7 +123,11 @@ async def refresh_token(data: RefreshTokenRequest, db: Session = Depends(get_db)
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     user_id = payload.get("sub")
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    user = db.query(User).filter(User.id == user_id_int).first()
     if not user or not user.refresh_token:
         raise HTTPException(status_code=401, detail="Token revoked or user not found")
 
@@ -137,7 +151,7 @@ async def refresh_token(data: RefreshTokenRequest, db: Session = Depends(get_db)
 @router.post("/logout")
 async def logout(
     db: Session = Depends(get_db),
-    current_user: User = Depends(__import__("app.core.dependencies", fromlist=["get_current_user"]).get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """Revoke refresh token (logout)."""
     current_user.refresh_token = None
@@ -202,7 +216,7 @@ async def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_d
 async def change_password(
     data: ChangePasswordRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(__import__("app.core.dependencies", fromlist=["get_current_user"]).get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """Change password for authenticated user."""
     if not verify_password(data.current_password, current_user.hashed_password):
@@ -218,7 +232,7 @@ async def change_password(
 async def resend_verification(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(__import__("app.core.dependencies", fromlist=["get_current_user"]).get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """Resend email verification link."""
     if current_user.is_verified:

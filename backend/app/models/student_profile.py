@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Integer, String, Text, ForeignKey, Date, Float, ARRAY, JSON
+    Column, Integer, String, Text, ForeignKey, Date, Float, JSON, Boolean
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -67,7 +67,7 @@ class Experience(Base):
     location = Column(String(200), nullable=True)
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
-    is_current = Column(Integer, default=0)  # 1 = current job
+    is_current = Column(Boolean, default=False)  # True = current job
     description = Column(Text, nullable=True)
 
     profile = relationship("StudentProfile", back_populates="experiences")

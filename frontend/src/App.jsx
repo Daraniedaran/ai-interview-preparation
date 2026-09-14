@@ -10,6 +10,7 @@ import LoadingScreen from './components/ui/LoadingScreen'
 
 // Public Pages (eager loaded)
 import LandingPage from './pages/public/LandingPage'
+import NotFoundPage from './pages/public/NotFoundPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
@@ -129,7 +130,7 @@ function App() {
         </Route>
 
         {/* 404 */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   )

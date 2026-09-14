@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '../../services'
 import { useAuth } from '../../context/AuthContext'
@@ -38,6 +38,18 @@ const ProfilePage = () => {
     },
   })
 
+  // Keep the edit form in sync once the async user object loads
+  useEffect(() => {
+    if (user) {
+      reset({
+        full_name: user.full_name || '',
+        phone: user.phone || '',
+        college: user.college || '',
+        graduation_year: user.graduation_year || '',
+      })
+    }
+  }, [user, reset])
+
   const updateUserMutation = useMutation({
     mutationFn: userService.updateMe,
     onSuccess: () => {
@@ -51,14 +63,14 @@ const ProfilePage = () => {
   const updateProfileMutation = useMutation({
     mutationFn: userService.updateProfile,
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-profile'])
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] })
       toast.success('Profile updated!')
     },
   })
 
   const uploadAvatarMutation = useMutation({
     mutationFn: (file) => userService.uploadAvatar(file),
-    onSuccess: (data) => {
+    onSuccess: () => {
       refreshUser()
       toast.success('Profile picture updated!')
     },
@@ -67,22 +79,22 @@ const ProfilePage = () => {
 
   const addSkillMutation = useMutation({
     mutationFn: userService.addSkill,
-    onSuccess: () => { queryClient.invalidateQueries(['my-profile']); toast.success('Skill added!') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-profile'] }); toast.success('Skill added!') },
   })
 
   const deleteSkillMutation = useMutation({
     mutationFn: userService.deleteSkill,
-    onSuccess: () => { queryClient.invalidateQueries(['my-profile']); toast.success('Skill removed') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-profile'] }); toast.success('Skill removed') },
   })
 
   const addEduMutation = useMutation({
     mutationFn: userService.addEducation,
-    onSuccess: () => { queryClient.invalidateQueries(['my-profile']); toast.success('Education added!') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-profile'] }); toast.success('Education added!') },
   })
 
   const deleteEduMutation = useMutation({
     mutationFn: userService.deleteEducation,
-    onSuccess: () => { queryClient.invalidateQueries(['my-profile']); toast.success('Education removed') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-profile'] }); toast.success('Education removed') },
     onError: () => toast.error('Failed to remove education'),
   })
 
@@ -97,7 +109,19 @@ const ProfilePage = () => {
     if (name) addSkillMutation.mutate({ name, category, proficiency: 'Intermediate' })
   }
 
-  const onSubmitUser = (data) => updateUserMutation.mutate(data)
+  const onSubmitUser = (data) => {
+    const payload = {
+      full_name: data.full_name || undefined,
+      phone: data.phone || undefined,
+      college: data.college || undefined,
+      graduation_year: data.graduation_year ? Number(data.graduation_year) : null,
+    }
+    // Drop empty strings so backend exclude_none doesn't overwrite with ""
+    Object.keys(payload).forEach((k) => {
+      if (payload[k] === undefined || payload[k] === '') delete payload[k]
+    })
+    updateUserMutation.mutate(payload)
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">

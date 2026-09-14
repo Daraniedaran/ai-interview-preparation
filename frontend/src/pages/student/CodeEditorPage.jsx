@@ -9,7 +9,7 @@ import {
   RiPlayFill, RiSendPlaneFill, RiLightbulbLine,
   RiArrowLeftLine, RiCheckLine, RiCloseLine, RiTerminalBoxLine,
   RiTimeLine, RiLoader4Line, RiCodeLine, RiKeyboardLine,
-  RiAlertLine, RiFlashlightLine,
+  RiFlashlightLine,
 } from 'react-icons/ri'
 
 const defaultCodeTemplates = {
@@ -52,6 +52,43 @@ public class Main {
         if (scanner.hasNext()) {
             System.out.println(scanner.next());
         }
+    }
+}
+`,
+  sql: `-- Write your SQL query here
+SELECT * FROM table_name LIMIT 10;
+`,
+  c: `#include <stdio.h>
+
+int main() {
+    char buf[1024];
+    if (scanf("%1023s", buf) == 1) {
+        printf("%s", buf);
+    }
+    return 0;
+}
+`,
+  csharp: `using System;
+
+class Program {
+    static void Main() {
+        var line = Console.ReadLine();
+        if (line != null) Console.WriteLine(line);
+    }
+}
+`,
+  go: `package main
+
+import (
+    "bufio"
+    "fmt"
+    "os"
+)
+
+func main() {
+    scanner := bufio.NewScanner(os.Stdin)
+    if scanner.Scan() {
+        fmt.Println(scanner.Text())
     }
 }
 `,
@@ -154,7 +191,7 @@ const TestCaseDetail = ({ tc }) => (
 )
 
 // Console panel content
-const ConsoleContent = ({ output, isRunning, isSubmitting, customInput, setCustomInput, consoleTab, setConsoleTab }) => {
+const ConsoleContent = ({ output, isRunning, isSubmitting, customInput, setCustomInput, consoleTab }) => {
   const [activeTestCase, setActiveTestCase] = useState(0)
 
   // Reset active test case when output changes
@@ -299,6 +336,7 @@ const CodeEditorPage = () => {
   const { isDark } = useTheme()
   const [language, setLanguage] = useState('python')
   const [code, setCode] = useState(defaultCodeTemplates.python)
+  const [codeByLang, setCodeByLang] = useState({ python: defaultCodeTemplates.python })
   const [activeTab, setActiveTab] = useState('description')
   const [consoleTab, setConsoleTab] = useState('output')
   const [customInput, setCustomInput] = useState('')
@@ -316,18 +354,20 @@ const CodeEditorPage = () => {
     queryFn: () => codingService.getMySubmissions(id),
   })
 
-  useEffect(() => {
-    if (defaultCodeTemplates[language]) {
-      setCode(defaultCodeTemplates[language])
-    }
-  }, [language])
+  const handleLanguageChange = (next) => {
+    setCodeByLang((prev) => ({ ...prev, [language]: code }))
+    setLanguage(next)
+    setCode(codeByLang[next] ?? defaultCodeTemplates[next] ?? '')
+  }
 
-  // Pre-fill custom input with first sample test case
+  // Pre-fill custom input with first sample test case (supports both input/input_data keys)
   useEffect(() => {
-    if (problem?.sample_test_cases?.[0]?.input && !customInput) {
-      setCustomInput(problem.sample_test_cases[0].input)
+    const firstInput = problem?.sample_test_cases?.[0]?.input
+      ?? problem?.sample_test_cases?.[0]?.input_data ?? ''
+    if (firstInput && !customInput) {
+      setCustomInput(firstInput)
     }
-  }, [problem])
+  }, [problem, customInput])
 
   const runMutation = useMutation({
     mutationFn: codingService.run,
@@ -435,13 +475,14 @@ const CodeEditorPage = () => {
         <div className="flex items-center gap-2">
           <select
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) => handleLanguageChange(e.target.value)}
             className="input w-36 py-1.5 text-xs font-mono"
           >
-            <option value="python">Python 3</option>
-            <option value="javascript">JavaScript</option>
-            <option value="cpp">C++</option>
-            <option value="java">Java</option>
+            {(problem?.supported_languages?.length ? problem.supported_languages : Object.keys(defaultCodeTemplates)).map((lang) => (
+              <option key={lang} value={lang}>
+                {lang === 'python' ? 'Python 3' : lang === 'javascript' ? 'JavaScript' : lang === 'cpp' ? 'C++' : lang === 'csharp' ? 'C#' : lang.charAt(0).toUpperCase() + lang.slice(1)}
+              </option>
+            ))}
           </select>
 
           <button

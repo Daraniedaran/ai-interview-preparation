@@ -9,6 +9,24 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const userData = await userService.getMe()
+      setUser(userData)
+      setIsAuthenticated(true)
+    } catch (err) {
+      // Only clear tokens on 401 (invalid/expired). Keep session on 5xx/network errors.
+      if (err?.response?.status === 401) {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        setUser(null)
+        setIsAuthenticated(false)
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   // Load user from stored token on app start
   useEffect(() => {
     const token = localStorage.getItem('access_token')
@@ -17,23 +35,7 @@ export const AuthProvider = ({ children }) => {
     } else {
       setIsLoading(false)
     }
-  }, [])
-
-  const fetchCurrentUser = useCallback(async () => {
-    try {
-      const userData = await userService.getMe()
-      setUser(userData)
-      setIsAuthenticated(true)
-    } catch (error) {
-      // Token invalid or expired
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      setUser(null)
-      setIsAuthenticated(false)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+  }, [fetchCurrentUser])
 
   const login = useCallback(async (email, password) => {
     const response = await authService.login({ email, password })
@@ -46,7 +48,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     try {
       await authService.logout()
-    } catch (_) {
+    } catch {
       // Ignore errors on logout
     }
     localStorage.removeItem('access_token')

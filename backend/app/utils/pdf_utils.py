@@ -1,6 +1,7 @@
 import io
 import logging
 from typing import Optional
+from xml.sax.saxutils import escape as _xml_escape
 from PyPDF2 import PdfReader
 from pdfminer.high_level import extract_text as pdfminer_extract
 from reportlab.lib.pagesizes import letter, A4
@@ -12,6 +13,30 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_text(value) -> str:
+    """Coerce None -> '' and escape XML chars for reportlab Paragraph."""
+    if value is None:
+        return ""
+    return _xml_escape(str(value))
+
+
+def _safe_list(value) -> list:
+    if not value:
+        return []
+    if isinstance(value, (list, tuple)):
+        return [v for v in value if v is not None]
+    return [value]
+
+
+def _safe_score(value) -> float:
+    try:
+        if value is None:
+            return 0
+        return float(value)
+    except (TypeError, ValueError):
+        return 0
 
 
 def extract_text_from_pdf(file_bytes: bytes) -> Optional[str]:
@@ -75,21 +100,28 @@ def generate_resume_feedback_pdf(review_data: dict, user_name: str) -> bytes:
 
     # Title
     story.append(Paragraph("🎯 Resume Review Report", title_style))
-    story.append(Paragraph(f"Candidate: {user_name}", styles["Normal"]))
+    story.append(Paragraph(f"Candidate: {_safe_text(user_name)}", styles["Normal"]))
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y')}", styles["Normal"]))
     story.append(HRFlowable(width="100%", thickness=2, color=primary_color, spaceAfter=12))
 
     # Score Summary Table
     story.append(Paragraph("📊 Score Summary", heading_style))
+    resume_score = _safe_score(review_data.get('resume_score', 0))
+    ats_score = _safe_score(review_data.get('ats_score', 0))
     score_data = [
         ["Metric", "Score", "Rating"],
-        ["Overall Resume Score", f"{review_data.get('resume_score', 0):.0f}/100",
-         "Good" if review_data.get('resume_score', 0) >= 70 else "Needs Work"],
-        ["ATS Compatibility", f"{review_data.get('ats_score', 0):.0f}/100",
-         "Good" if review_data.get('ats_score', 0) >= 70 else "Needs Work"],
+        ["Overall Resume Score", f"{resume_score:.0f}/100",
+         "Good" if resume_score >= 70 else "Needs Work"],
+        ["ATS Compatibility", f"{ats_score:.0f}/100",
+         "Good" if ats_score >= 70 else "Needs Work"],
     ]
-    for section, score in review_data.get("section_scores", {}).items():
-        score_data.append([section.replace("_", " ").title(), f"{score}/100", "Good" if score >= 70 else "Needs Work"])
+    for section, score in (review_data.get("section_scores", {}) or {}).items():
+        try:
+            s = float(score)
+        except (TypeError, ValueError):
+            s = 0
+        story_section = _safe_text(section).replace("_", " ").title() or str(section)
+        score_data.append([story_section, f"{s:.0f}/100", "Good" if s >= 70 else "Needs Work"])
 
     table = Table(score_data, colWidths=[3 * inch, 1.5 * inch, 1.5 * inch])
     table.setStyle(TableStyle([
@@ -108,27 +140,27 @@ def generate_resume_feedback_pdf(review_data: dict, user_name: str) -> bytes:
 
     # AI Feedback
     story.append(Paragraph("🤖 AI Feedback", heading_style))
-    story.append(Paragraph(review_data.get("ai_feedback", ""), body_style))
+    story.append(Paragraph(_safe_text(review_data.get("ai_feedback", "")), body_style))
 
     # Strengths
     story.append(Paragraph("✅ Strengths", heading_style))
-    for strength in review_data.get("strengths", []):
-        story.append(Paragraph(f"• {strength}", body_style))
+    for strength in _safe_list(review_data.get("strengths", [])):
+        story.append(Paragraph(f"• {_safe_text(strength)}", body_style))
 
     # Weaknesses
     story.append(Paragraph("⚠️ Areas for Improvement", heading_style))
-    for weakness in review_data.get("weaknesses", []):
-        story.append(Paragraph(f"• {weakness}", body_style))
+    for weakness in _safe_list(review_data.get("weaknesses", [])):
+        story.append(Paragraph(f"• {_safe_text(weakness)}", body_style))
 
     # Missing Skills
     story.append(Paragraph("💡 Suggested Skills to Add", heading_style))
-    for skill in review_data.get("missing_skills", []):
-        story.append(Paragraph(f"• {skill}", body_style))
+    for skill in _safe_list(review_data.get("missing_skills", [])):
+        story.append(Paragraph(f"• {_safe_text(skill)}", body_style))
 
     # Improvements
     story.append(Paragraph("🚀 Recommended Improvements", heading_style))
-    for i, improvement in enumerate(review_data.get("improvements", []), 1):
-        story.append(Paragraph(f"{i}. {improvement}", body_style))
+    for i, improvement in enumerate(_safe_list(review_data.get("improvements", [])), 1):
+        story.append(Paragraph(f"{i}. {_safe_text(improvement)}", body_style))
 
     doc.build(story)
     return buffer.getvalue()
@@ -147,20 +179,22 @@ def generate_interview_report_pdf(interview_data: dict, user_name: str) -> bytes
     heading_style = ParagraphStyle("H", parent=styles["Heading2"], fontSize=13, textColor=primary_color, spaceBefore=10, spaceAfter=4)
 
     story.append(Paragraph("🎤 Mock Interview Report", title_style))
-    story.append(Paragraph(f"Candidate: {user_name} | Date: {datetime.now().strftime('%B %d, %Y')}", styles["Normal"]))
+    story.append(Paragraph(f"Candidate: {_safe_text(user_name)} | Date: {datetime.now().strftime('%B %d, %Y')}", styles["Normal"]))
     story.append(HRFlowable(width="100%", thickness=2, color=primary_color, spaceAfter=10))
 
     # Scores
     story.append(Paragraph("📊 Performance Scores", heading_style))
+    def _fmt(key):
+        return f"{_safe_score(interview_data.get(key, 0)):.0f}/100"
     scores_data = [
         ["Category", "Score"],
-        ["Overall Score", f"{interview_data.get('overall_score', 0):.0f}/100"],
-        ["Technical Knowledge", f"{interview_data.get('technical_score', 0):.0f}/100"],
-        ["Communication", f"{interview_data.get('communication_score', 0):.0f}/100"],
-        ["Confidence", f"{interview_data.get('confidence_score', 0):.0f}/100"],
-        ["Professionalism", f"{interview_data.get('professionalism_score', 0):.0f}/100"],
-        ["Grammar", f"{interview_data.get('grammar_score', 0):.0f}/100"],
-        ["Completeness", f"{interview_data.get('completeness_score', 0):.0f}/100"],
+        ["Overall Score", _fmt('overall_score')],
+        ["Technical Knowledge", _fmt('technical_score')],
+        ["Communication", _fmt('communication_score')],
+        ["Confidence", _fmt('confidence_score')],
+        ["Professionalism", _fmt('professionalism_score')],
+        ["Grammar", _fmt('grammar_score')],
+        ["Completeness", _fmt('completeness_score')],
     ]
     table = Table(scores_data, colWidths=[3*inch, 2*inch])
     table.setStyle(TableStyle([
@@ -177,22 +211,22 @@ def generate_interview_report_pdf(interview_data: dict, user_name: str) -> bytes
 
     # Summary
     story.append(Paragraph("🤖 AI Summary", heading_style))
-    story.append(Paragraph(interview_data.get("ai_summary", ""), styles["Normal"]))
+    story.append(Paragraph(_safe_text(interview_data.get("ai_summary", "")), styles["Normal"]))
 
     # Strengths
     story.append(Paragraph("✅ Strengths", heading_style))
-    for s in interview_data.get("strengths", []):
-        story.append(Paragraph(f"• {s}", styles["Normal"]))
+    for s in _safe_list(interview_data.get("strengths", [])):
+        story.append(Paragraph(f"• {_safe_text(s)}", styles["Normal"]))
 
     # Improvements
     story.append(Paragraph("🎯 Areas to Improve", heading_style))
-    for a in interview_data.get("areas_to_improve", []):
-        story.append(Paragraph(f"• {a}", styles["Normal"]))
+    for a in _safe_list(interview_data.get("areas_to_improve", [])):
+        story.append(Paragraph(f"• {_safe_text(a)}", styles["Normal"]))
 
     # Suggestions
     story.append(Paragraph("💡 Suggestions", heading_style))
-    for sg in interview_data.get("suggestions", []):
-        story.append(Paragraph(f"• {sg}", styles["Normal"]))
+    for sg in _safe_list(interview_data.get("suggestions", [])):
+        story.append(Paragraph(f"• {_safe_text(sg)}", styles["Normal"]))
 
     doc.build(story)
     return buffer.getvalue()

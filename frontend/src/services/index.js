@@ -47,25 +47,28 @@ export const resumeService = {
 }
 
 export const questionService = {
-  list: (params) => api.get('/questions', { params }).then(r => r.data),
+  list: (params) => api.get('/questions/', { params }).then(r => r.data),
   getById: (id) => api.get(`/questions/${id}`).then(r => r.data),
   getCategories: () => api.get('/questions/categories').then(r => r.data),
   getRandom: (params) => api.get('/questions/random', { params }).then(r => r.data),
   toggleBookmark: (id) => api.post(`/questions/${id}/bookmark`).then(r => r.data),
   getBookmarks: () => api.get('/questions/bookmarks/me').then(r => r.data),
-  create: (data) => api.post('/questions', data).then(r => r.data),
+  create: (data) => api.post('/questions/', data).then(r => r.data),
   update: (id, data) => api.put(`/questions/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/questions/${id}`).then(r => r.data),
 }
 
 export const codingService = {
-  list: (params) => api.get('/coding', { params }).then(r => r.data),
+  list: (params) => api.get('/coding/', { params }).then(r => r.data),
   getById: (id) => api.get(`/coding/${id}`).then(r => r.data),
   getCategories: () => api.get('/coding/categories').then(r => r.data),
   run: (data) => api.post('/coding/run', data, { timeout: 30000 }).then(r => r.data),
   submit: (data) => api.post('/coding/submit', data, { timeout: 60000 }).then(r => r.data),
   getHint: (data) => api.post('/coding/hint', data).then(r => r.data),
   getMySubmissions: (questionId) => api.get('/coding/submissions/me', { params: { question_id: questionId } }).then(r => r.data),
+  create: (data) => api.post('/coding/', data).then(r => r.data),
+  update: (id, data) => api.put(`/coding/${id}`, data).then(r => r.data),
+  delete: (id) => api.delete(`/coding/${id}`).then(r => r.data),
 }
 
 export const aptitudeService = {
@@ -85,9 +88,9 @@ export const interviewService = {
 }
 
 export const companyService = {
-  list: (params) => api.get('/companies', { params }).then(r => r.data),
+  list: (params) => api.get('/companies/', { params }).then(r => r.data),
   getBySlug: (slug) => api.get(`/companies/${slug}`).then(r => r.data),
-  create: (data) => api.post('/companies', data).then(r => r.data),
+  create: (data) => api.post('/companies/', data).then(r => r.data),
   update: (id, data) => api.put(`/companies/${id}`, data).then(r => r.data),
 }
 
@@ -99,7 +102,7 @@ export const leaderboardService = {
 }
 
 export const notificationService = {
-  list: (params) => api.get('/notifications', { params }).then(r => r.data),
+  list: (params) => api.get('/notifications/', { params }).then(r => r.data),
   markRead: (id) => api.patch(`/notifications/${id}/read`).then(r => r.data),
   markAllRead: () => api.patch('/notifications/read-all').then(r => r.data),
   delete: (id) => api.delete(`/notifications/${id}`).then(r => r.data),
@@ -157,7 +160,7 @@ export const discussionService = {
 export const studyPlannerService = {
   listTasks: (params) => api.get('/study-planner/tasks', { params }).then(r => r.data),
   createTask: (data) => api.post('/study-planner/tasks', data).then(r => r.data),
-  updateTask: (id, data) => api.put(`/study-planner/${id}`, data).then(r => r.data),
+  updateTask: (id, data) => api.put(`/study-planner/tasks/${id}`, data).then(r => r.data),
   toggleTask: (id) => api.patch(`/study-planner/tasks/${id}/toggle`).then(r => r.data),
   deleteTask: (id) => api.delete(`/study-planner/tasks/${id}`).then(r => r.data),
   getStats: () => api.get('/study-planner/stats').then(r => r.data),

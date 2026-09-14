@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { adminService } from '../../services'
-import { motion } from 'framer-motion'
 import { 
   RiAdminLine, 
   RiGroupLine, 
@@ -13,7 +12,7 @@ import {
 import { Link } from 'react-router-dom'
 
 const AdminDashboardPage = () => {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: adminService.getStats,
   })

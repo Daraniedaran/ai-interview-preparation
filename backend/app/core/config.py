@@ -1,9 +1,11 @@
-from pydantic_settings import BaseSettings
-from typing import List
-import secrets
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from typing import List, Union
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
+
     # Application
     APP_NAME: str = "AI Interview Preparation Portal"
     APP_VERSION: str = "1.0.0"
@@ -15,22 +17,40 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # Database
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/ai_interview_db"
+    DATABASE_URL: str = "sqlite:///./ai_interview.db"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # JWT
-    SECRET_KEY: str = secrets.token_hex(32)
+    # NOTE: override via SECRET_KEY env var in production. A fixed dev default
+    # keeps logins valid across restarts (a random default would invalidate all JWTs).
+    SECRET_KEY: str = "dev-only-secret-change-me-in-production-use-openssl-rand-hex-32"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # CORS
-    ALLOWED_ORIGINS: List[str] = [
+    ALLOWED_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
         "http://localhost:3000",
     ]
+
+    @field_validator("ALLOWED_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        import json
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("["):
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(i).strip() for i in parsed if str(i).strip()]
+                except json.JSONDecodeError:
+                    pass
+            return [i.strip() for i in v.split(",") if i.strip()]
+        return v
 
     # OpenAI
     OPENAI_API_KEY: str = ""
@@ -58,10 +78,6 @@ class Settings(BaseSettings):
 
     # Frontend URL
     FRONTEND_URL: str = "http://localhost:5173"
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 
 settings = Settings()

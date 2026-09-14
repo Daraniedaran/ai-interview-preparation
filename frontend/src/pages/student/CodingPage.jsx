@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { codingService } from '../../services'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { RiCodeLine, RiSearchLine, RiCheckLine, RiFireLine, RiArrowRightLine } from 'react-icons/ri'
+import { RiCodeLine, RiSearchLine, RiArrowRightLine } from 'react-icons/ri'
 
 const difficultyColor = {
   easy: 'difficulty-easy',

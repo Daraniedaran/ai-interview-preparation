@@ -11,7 +11,7 @@ from app.models.resume_review import ResumeReview
 from app.models.company import Company
 from app.models.question import Question
 from app.models.leaderboard import Leaderboard
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,19 +35,19 @@ async def get_admin_stats(
     total_resume_reviews = db.query(ResumeReview).filter(ResumeReview.is_processed == True).count()
 
     # New users this week
-    week_ago = datetime.utcnow() - timedelta(weeks=1)
+    week_ago = datetime.now(timezone.utc) - timedelta(weeks=1)
     new_users_week = db.query(User).filter(User.created_at >= week_ago).count()
 
     # Daily active users (last 7 days)
     daily_users = []
     for i in range(6, -1, -1):
-        day_start = datetime.utcnow() - timedelta(days=i + 1)
-        day_end = datetime.utcnow() - timedelta(days=i)
+        day_start = datetime.now(timezone.utc) - timedelta(days=i + 1)
+        day_end = datetime.now(timezone.utc) - timedelta(days=i)
         count = db.query(CodingSubmission.user_id).filter(
             CodingSubmission.submitted_at.between(day_start, day_end)
         ).distinct().count()
         daily_users.append({
-            "date": (datetime.utcnow() - timedelta(days=i)).strftime("%b %d"),
+            "date": (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%b %d"),
             "users": count,
         })
 
@@ -87,7 +87,11 @@ async def admin_list_users(
             User.username.ilike(f"%{search}%")
         )
     if role:
-        query = query.filter(User.role == role)
+        try:
+            query = query.filter(User.role == UserRole(role))
+        except ValueError:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=422, detail=f"Invalid role: {role}")
     if is_active is not None:
         query = query.filter(User.is_active == is_active)
 

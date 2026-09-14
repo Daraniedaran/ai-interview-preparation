@@ -26,6 +26,8 @@ class UserRegister(BaseModel):
     def password_strength(cls, v):
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters")
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("Password must be at most 72 bytes (bcrypt limit)")
         return v
 
 
@@ -59,6 +61,8 @@ class ResetPasswordRequest(BaseModel):
     def password_strength(cls, v):
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters")
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("Password must be at most 72 bytes (bcrypt limit)")
         return v
 
 
@@ -75,6 +79,8 @@ class ChangePasswordRequest(BaseModel):
     def password_strength(cls, v):
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters")
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("Password must be at most 72 bytes (bcrypt limit)")
         return v
 
 

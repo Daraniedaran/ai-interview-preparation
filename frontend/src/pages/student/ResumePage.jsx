@@ -1,12 +1,11 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { resumeService } from '../../services'
-import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import {
   RiUploadCloudLine, RiFileTextLine, RiDownloadLine, RiCheckLine,
-  RiCloseLine, RiStarLine, RiErrorWarningLine, RiLightbulbLine,
+  RiCloseLine, RiLightbulbLine,
   RiSearchLine, RiTimeLine
 } from 'react-icons/ri'
 

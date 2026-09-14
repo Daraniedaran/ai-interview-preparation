@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { interviewService } from '../../services'
-import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import {
   RiMicLine, RiMicOffLine, RiSendPlaneFill, RiRobotLine,
-  RiCheckLine, RiVolumeUpLine, RiQuestionLine
+  RiVolumeUpLine
 } from 'react-icons/ri'
 
 const InterviewSessionPage = () => {
@@ -31,17 +30,19 @@ const InterviewSessionPage = () => {
         navigate(`/interview/${id}/report`)
         return
       }
+      // Always restore pending question text so fresh sessions don't show fallback
+      if (interviewData.current_question_text) {
+        setCurrentQText(interviewData.current_question_text)
+      }
       if (interviewData.responses?.length > 0) {
         setHistory(interviewData.responses)
         const lastResp = interviewData.responses[interviewData.responses.length - 1]
         setCurrentQNum(lastResp.question_number + 1)
-        // Restore the pending question so a page refresh resumes the session
-        if (interviewData.current_question_text) {
-          setCurrentQText(interviewData.current_question_text)
-        }
+      } else {
+        setCurrentQNum((interviewData.answered_questions || 0) + 1)
       }
     }
-  }, [interviewData])
+  }, [interviewData, id, navigate])
 
   const answerMutation = useMutation({
     mutationFn: interviewService.submitAnswer,
@@ -116,10 +117,14 @@ const InterviewSessionPage = () => {
       toast.error('Please provide an answer before submitting')
       return
     }
+    if (!currentQText) {
+      toast.error('Question is still loading. Please wait a moment.')
+      return
+    }
     answerMutation.mutate({
       interview_id: Number(id),
       question_number: currentQNum,
-      question_text: currentQText || 'Tell me about a challenging project you worked on.',
+      question_text: currentQText,
       student_answer: answer,
     })
   }
@@ -132,7 +137,7 @@ const InterviewSessionPage = () => {
     )
   }
 
-  const activeQuestion = currentQText || 'Tell me about yourself and your background in software engineering.'
+  const activeQuestion = currentQText || (isLoading ? 'Loading question…' : 'Question unavailable — please refresh the page.')
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -178,7 +183,7 @@ const InterviewSessionPage = () => {
             </button>
           </div>
           <p className="text-base font-semibold text-gray-900 dark:text-white leading-relaxed">
-            "{activeQuestion}"
+            &ldquo;{activeQuestion}&rdquo;
           </p>
         </div>
 

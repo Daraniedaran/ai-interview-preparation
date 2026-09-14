@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   RiDashboardLine, RiUserLine, RiFileTextLine, RiBrainLine,
   RiCodeLine, RiMicLine, RiBuildingLine, RiQuestionLine,
-  RiTrophyLine, RiBarChartLine, RiMedalLine, RiBellLine,
+  RiTrophyLine, RiBarChartLine, RiMedalLine, RiNotification3Line,
   RiStickyNoteLine, RiTimeLine, RiFlashlightLine,
   RiDiscussLine, RiLogoutBoxLine, RiShieldLine
 } from 'react-icons/ri'
@@ -23,6 +23,7 @@ const navItems = [
   { path: '/leaderboard', label: 'Leaderboard', icon: RiTrophyLine },
   { path: '/progress', label: 'Progress', icon: RiBarChartLine },
   { path: '/achievements', label: 'Achievements', icon: RiMedalLine },
+  { path: '/notifications', label: 'Notifications', icon: RiNotification3Line },
   { divider: true, label: 'Tools' },
   { path: '/flashcards', label: 'Flashcards', icon: RiFlashlightLine },
   { path: '/notes', label: 'Notes', icon: RiStickyNoteLine },

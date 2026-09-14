@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from app.database.connection import get_db
 from app.core.dependencies import get_current_user, get_current_admin
 from app.models.user import User
@@ -93,7 +94,9 @@ async def get_problem(
 
     # Get only sample test cases for students
     sample_cases = [
-        {"input": tc.input_data, "output": tc.expected_output, "explanation": tc.explanation}
+        {"input_data": tc.input_data, "expected_output": tc.expected_output,
+         "input": tc.input_data, "output": tc.expected_output,
+         "explanation": tc.explanation}
         for tc in problem.test_cases
         if tc.is_sample
     ]
@@ -146,6 +149,8 @@ async def submit_solution(
         raise HTTPException(status_code=404, detail="Problem not found")
 
     test_cases = problem.test_cases
+    if not test_cases:
+        raise HTTPException(status_code=400, detail="Problem has no test cases configured")
     passed = 0
     total = len(test_cases)
     final_status = SubmissionStatus.ACCEPTED
@@ -348,6 +353,8 @@ async def create_problem(
 ):
     """Admin: Create a new coding problem."""
     from app.models.coding_question import TestCase
+    if db.query(CodingQuestion).filter(CodingQuestion.slug == data.slug).first():
+        raise HTTPException(status_code=400, detail="Problem with this slug already exists")
     test_cases_data = data.test_cases
     problem_data = data.model_dump(exclude={"test_cases"})
     problem = CodingQuestion(**problem_data, created_by=admin.id)
@@ -355,9 +362,61 @@ async def create_problem(
     db.flush()
 
     for tc in test_cases_data:
-        test_case = TestCase(**tc.model_dump(), question_id=problem.id)
+        tc_dict = tc.model_dump()
+        # is_hidden defaults True; sample cases are visible -> not hidden
+        if "is_hidden" not in tc_dict or tc_dict.get("is_sample"):
+            tc_dict["is_hidden"] = not tc_dict.get("is_sample", False)
+        test_case = TestCase(**tc_dict, question_id=problem.id)
         db.add(test_case)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Problem with this slug already exists")
     db.refresh(problem)
     return {"id": problem.id, "title": problem.title, "slug": problem.slug}
+
+
+@router.put("/{problem_id}", response_model=dict)
+async def update_problem(
+    problem_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Admin: Update a coding problem (whitelisted fields only)."""
+    problem = db.query(CodingQuestion).filter(CodingQuestion.id == problem_id).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    allowed = {"title", "slug", "problem_statement", "input_format", "output_format",
+               "constraints", "examples", "hints", "editorial", "difficulty",
+               "category", "tags", "company_id", "supported_languages",
+               "time_limit_ms", "memory_limit_kb", "is_active"}
+    if "slug" in data and data["slug"] != problem.slug:
+        if db.query(CodingQuestion).filter(CodingQuestion.slug == data["slug"], CodingQuestion.id != problem_id).first():
+            raise HTTPException(status_code=400, detail="Problem with this slug already exists")
+    for key, value in data.items():
+        if key in allowed:
+            setattr(problem, key, value)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Problem with this slug already exists")
+    return {"id": problem.id, "title": problem.title, "slug": problem.slug}
+
+
+@router.delete("/{problem_id}")
+async def delete_problem(
+    problem_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Admin: Soft-delete a coding problem."""
+    problem = db.query(CodingQuestion).filter(CodingQuestion.id == problem_id).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    problem.is_active = False
+    db.commit()
+    return {"message": "Problem deleted"}

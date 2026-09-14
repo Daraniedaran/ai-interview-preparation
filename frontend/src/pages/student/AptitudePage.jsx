@@ -5,8 +5,8 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import {
-  RiBrainLine, RiTimeLine, RiCheckLine, RiBarChartLine,
-  RiArrowRightLine, RiFireLine, RiQuestionLine
+  RiBrainLine, RiTimeLine,
+  RiArrowRightLine, RiQuestionLine
 } from 'react-icons/ri'
 
 const categoryConfig = {

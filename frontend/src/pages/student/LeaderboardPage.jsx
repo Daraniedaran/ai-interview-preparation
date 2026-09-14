@@ -22,7 +22,7 @@ const LeaderboardPage = () => {
     queryFn: () => {
       if (tab === 'weekly') return leaderboardService.weekly()
       if (tab === 'monthly') return leaderboardService.monthly()
-      if (tab === 'college') return leaderboardService.college(collegeFilter)
+      if (tab === 'college') return leaderboardService.college(collegeFilter || undefined)
       return leaderboardService.global()
     },
   })
@@ -75,9 +75,9 @@ const LeaderboardPage = () => {
           <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search student or college..."
+            value={tab === 'college' ? collegeFilter : search}
+            onChange={(e) => (tab === 'college' ? setCollegeFilter(e.target.value) : setSearch(e.target.value))}
+            placeholder={tab === 'college' ? 'Filter by college name...' : 'Search student or college...'}
             className="input pl-10"
           />
         </div>

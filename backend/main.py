@@ -23,8 +23,12 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """App startup and shutdown events."""
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-    if settings.DEBUG:
-        init_db()  # Auto-create tables in dev (use Alembic in production)
+    # Always ensure tables exist for SQLite dev; in production use Alembic,
+    # but auto-create avoids first-request 500 when DEBUG=False and no migration ran.
+    try:
+        init_db()
+    except Exception as e:
+        logger.error(f"init_db failed: {e}", exc_info=True)
     yield
     logger.info("Application shutdown")
 

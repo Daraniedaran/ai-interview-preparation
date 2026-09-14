@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.database.connection import get_db
 from app.core.dependencies import get_current_user, get_current_admin
 from app.models.user import User
@@ -134,19 +135,42 @@ async def create_company(
     admin: User = Depends(get_current_admin),
 ):
     """Admin: Create a new company."""
-    existing = db.query(Company).filter(Company.slug == data.get("slug")).first()
+    slug = (data.get("slug") or "").strip()
+    name = (data.get("name") or "").strip()
+    if not slug or not name:
+        raise HTTPException(status_code=422, detail="name and slug are required")
+    existing = db.query(Company).filter(Company.slug == slug).first()
     if existing:
         raise HTTPException(status_code=400, detail="Company with this slug already exists")
+    if db.query(Company).filter(Company.name == name).first():
+        raise HTTPException(status_code=400, detail="Company with this name already exists")
 
-    company = Company(**{k: v for k, v in data.items() if k != "rounds"})
+    allowed = {"name", "slug", "logo_url", "website", "industry", "headquarters",
+               "description", "interview_process", "difficulty", "avg_salary",
+               "employee_count", "glassdoor_rating", "preparation_tips",
+               "frequently_asked_topics", "is_featured"}
+    company = Company(**{k: v for k, v in data.items() if k in allowed})
     db.add(company)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Company with this name/slug already exists")
 
     for round_data in data.get("rounds", []):
-        r = InterviewRound(**round_data, company_id=company.id)
+        if not isinstance(round_data, dict):
+            continue
+        r = InterviewRound(**{k: v for k, v in round_data.items()
+                              if k in {"round_number", "round_name", "description",
+                                       "duration_minutes", "tips"}},
+                           company_id=company.id)
         db.add(r)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Company with this name/slug already exists")
     db.refresh(company)
     return {"id": company.id, "name": company.name, "slug": company.slug}
 
@@ -162,8 +186,22 @@ async def update_company(
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+    allowed = {"name", "slug", "logo_url", "website", "industry", "headquarters",
+               "description", "interview_process", "difficulty", "avg_salary",
+               "employee_count", "glassdoor_rating", "preparation_tips",
+               "frequently_asked_topics", "is_featured"}
+    if "slug" in data and data["slug"] != company.slug:
+        if db.query(Company).filter(Company.slug == data["slug"], Company.id != company_id).first():
+            raise HTTPException(status_code=400, detail="Company with this slug already exists")
+    if "name" in data and data["name"] != company.name:
+        if db.query(Company).filter(Company.name == data["name"], Company.id != company_id).first():
+            raise HTTPException(status_code=400, detail="Company with this name already exists")
     for key, value in data.items():
-        if hasattr(company, key):
+        if key in allowed and key not in {"id", "created_at"}:
             setattr(company, key, value)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Company with this name/slug already exists")
     return {"message": "Company updated"}

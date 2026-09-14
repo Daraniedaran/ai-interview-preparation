@@ -43,7 +43,7 @@ const AdminQuestionsPage = () => {
     mutationFn: (data) => questionService.create(data),
     onSuccess: () => {
       toast.success('Question added successfully')
-      queryClient.invalidateQueries(['admin-questions-list'])
+      queryClient.invalidateQueries({ queryKey: ['admin-questions-list'] })
       setShowModal(false)
     },
     onError: (err) => {
@@ -58,7 +58,7 @@ const AdminQuestionsPage = () => {
     mutationFn: ({ id, data }) => questionService.update(id, data),
     onSuccess: () => {
       toast.success('Question updated')
-      queryClient.invalidateQueries(['admin-questions-list'])
+      queryClient.invalidateQueries({ queryKey: ['admin-questions-list'] })
       setShowModal(false)
     },
     onError: (err) => {
@@ -73,7 +73,7 @@ const AdminQuestionsPage = () => {
     mutationFn: (id) => questionService.delete(id),
     onSuccess: () => {
       toast.success('Question deleted')
-      queryClient.invalidateQueries(['admin-questions-list'])
+      queryClient.invalidateQueries({ queryKey: ['admin-questions-list'] })
     },
   })
 

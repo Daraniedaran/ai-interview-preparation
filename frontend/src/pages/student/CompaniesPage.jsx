@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { companyService } from '../../services'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { RiBuildingLine, RiSearchLine, RiStarFill, RiArrowRightLine } from 'react-icons/ri'
+import { RiSearchLine, RiStarFill, RiArrowRightLine } from 'react-icons/ri'
 
 const CompaniesPage = () => {
   const [search, setSearch] = useState('')
@@ -12,7 +12,11 @@ const CompaniesPage = () => {
 
   const { data: companies, isLoading } = useQuery({
     queryKey: ['companies', search, industry, difficulty],
-    queryFn: () => companyService.list({ search, industry, difficulty }),
+    queryFn: () => companyService.list({
+      ...(search ? { search } : {}),
+      ...(industry ? { industry } : {}),
+      ...(difficulty ? { difficulty } : {}),
+    }),
   })
 
   return (
@@ -36,6 +40,18 @@ const CompaniesPage = () => {
         </div>
 
         <div className="flex gap-3 w-full md:w-auto">
+          <select
+            value={industry}
+            onChange={(e) => setIndustry(e.target.value)}
+            className="input w-44"
+          >
+            <option value="">All Industries</option>
+            <option value="Technology">Technology</option>
+            <option value="Finance">Finance</option>
+            <option value="Consulting">Consulting</option>
+            <option value="Product">Product</option>
+            <option value="E-commerce">E-commerce</option>
+          </select>
           <select
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value)}
@@ -65,7 +81,7 @@ const CompaniesPage = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-dark-700 flex items-center justify-center font-bold text-gray-800 dark:text-gray-200 text-lg">
-                    {company.name[0]}
+                    {company.name?.[0]?.toUpperCase() ?? '?'}
                   </div>
                   <span className={`badge ${company.difficulty === 'Easy' ? 'badge-success' : company.difficulty === 'Medium' ? 'badge-warning' : 'badge-danger'}`}>
                     {company.difficulty}

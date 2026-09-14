@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { 
   RiBookmarkLine, 
   RiAddLine, 
@@ -36,9 +35,7 @@ const NotesPage = () => {
       const data = await noteService.list(params)
       setNotes(data)
       // Auto-select first note if none selected
-      if (!selectedNote && data.length > 0) {
-        setSelectedNote(data[0])
-      }
+      setSelectedNote((prev) => (prev ? prev : data.length > 0 ? data[0] : prev))
     } catch {
       setNotes([])
     } finally {

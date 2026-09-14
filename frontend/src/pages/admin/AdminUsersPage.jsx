@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminService } from '../../services'
-import { motion } from 'framer-motion'
 import { 
   RiGroupLine, 
   RiSearchLine, 
@@ -27,7 +26,7 @@ const AdminUsersPage = () => {
     mutationFn: (id) => adminService.deleteUser(id),
     onSuccess: () => {
       toast.success('User account deleted')
-      queryClient.invalidateQueries(['admin-users-list'])
+      queryClient.invalidateQueries({ queryKey: ['admin-users-list'] })
     },
     onError: () => toast.error('Failed to delete user'),
   })
@@ -36,7 +35,7 @@ const AdminUsersPage = () => {
     mutationFn: (id) => adminService.toggleUserActive(id),
     onSuccess: () => {
       toast.success('User status updated')
-      queryClient.invalidateQueries(['admin-users-list'])
+      queryClient.invalidateQueries({ queryKey: ['admin-users-list'] })
     },
   })
 

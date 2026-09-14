@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { aptitudeService } from '../../services'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { RiTimeLine, RiArrowRightLine, RiArrowLeftLine, RiCheckLine, RiCloseLine } from 'react-icons/ri'
+import { RiTimeLine, RiArrowRightLine, RiArrowLeftLine } from 'react-icons/ri'
 
 const AptitudeTestPage = () => {
   const { testId } = useParams()
@@ -16,6 +16,7 @@ const AptitudeTestPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [result, setResult] = useState(null)
   const timerRef = useRef(null)
+  const startedRef = useRef(false)
 
   const startMutation = useMutation({
     mutationFn: () => aptitudeService.startTest(testId),
@@ -36,21 +37,7 @@ const AptitudeTestPage = () => {
     onError: () => toast.error('Submission failed'),
   })
 
-  useEffect(() => {
-    startMutation.mutate()
-  }, [testId])
-
-  useEffect(() => {
-    if (timeLeft === null || isSubmitted) return
-    if (timeLeft <= 0) {
-      handleSubmit(true)
-      return
-    }
-    timerRef.current = setInterval(() => setTimeLeft(t => t - 1), 1000)
-    return () => clearInterval(timerRef.current)
-  }, [timeLeft, isSubmitted])
-
-  const handleSubmit = (autoSubmit = false) => {
+  const handleSubmit = useCallback((autoSubmit = false) => {
     if (submitMutation.isPending) return
     if (!autoSubmit && Object.keys(answers).length === 0) {
       toast.error('Please answer at least one question')
@@ -58,12 +45,34 @@ const AptitudeTestPage = () => {
     }
     // Auto-submit on timeout must never be cancellable (answers are locked in)
     if (autoSubmit) {
-      toast.info('Time is up — submitting your answers')
+      toast('Time is up — submitting your answers', { icon: '⏰' })
     } else if (!window.confirm('Submit test?')) {
       return
     }
+    if (!testData?.attempt_id) return
     submitMutation.mutate({ attemptId: testData.attempt_id, answers })
-  }
+  }, [answers, submitMutation, testData])
+
+  useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
+    startMutation.mutate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [testId])
+
+  useEffect(() => {
+    if (timeLeft === null || isSubmitted) return
+    if (timeLeft <= 0) {
+      handleSubmit(true)
+    }
+  }, [timeLeft, isSubmitted, handleSubmit])
+
+  const timerNotStarted = timeLeft === null
+  useEffect(() => {
+    if (timerNotStarted || isSubmitted) return
+    timerRef.current = setInterval(() => setTimeLeft((t) => (typeof t === 'number' && t > 0 ? t - 1 : 0)), 1000)
+    return () => clearInterval(timerRef.current)
+  }, [isSubmitted, timerNotStarted])
 
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60)

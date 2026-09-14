@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { questionService } from '../../services'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -21,11 +22,17 @@ const difficultyColor = {
 }
 
 const QuestionsPage = () => {
-  const [search, setSearch] = useState('')
+  const [searchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('search') || '')
   const [difficulty, setDifficulty] = useState('')
   const [category, setCategory] = useState('')
   const [expandedId, setExpandedId] = useState(null)
   const [bookmarksOnly, setBookmarksOnly] = useState(false)
+
+  useEffect(() => {
+    const s = searchParams.get('search') || ''
+    setSearch(s)
+  }, [searchParams])
 
   const queryClient = useQueryClient()
 
@@ -44,8 +51,8 @@ const QuestionsPage = () => {
   const bookmarkMutation = useMutation({
     mutationFn: (id) => questionService.toggleBookmark(id),
     onSuccess: (data) => {
-      toast.success(data.message || 'Bookmark updated')
-      queryClient.invalidateQueries(['questions-list'])
+      toast.success(data.bookmarked ? 'Bookmarked' : 'Bookmark removed')
+      queryClient.invalidateQueries({ queryKey: ['questions-list'] })
     },
     onError: () => {
       toast.error('Failed to update bookmark')

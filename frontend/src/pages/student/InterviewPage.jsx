@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { interviewService, companyService } from '../../services'
 import { useNavigate, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import {
-  RiMicLine, RiPlayFill, RiFileTextLine, RiAwardLine, RiBuildingLine,
-  RiQuestionLine, RiTimeLine
+  RiMicLine, RiPlayFill, RiFileTextLine,
+  RiTimeLine
 } from 'react-icons/ri'
 
 const InterviewPage = () => {

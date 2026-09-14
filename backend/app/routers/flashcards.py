@@ -7,7 +7,7 @@ from app.database.connection import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.flashcard import Flashcard
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -167,7 +167,7 @@ async def review_flashcard(
         raise HTTPException(status_code=404, detail="Flashcard not found")
 
     flashcard.review_count += 1
-    flashcard.last_reviewed_at = datetime.utcnow()
+    flashcard.last_reviewed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(flashcard)
     return flashcard

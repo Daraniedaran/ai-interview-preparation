@@ -30,7 +30,7 @@ const FlashcardsPage = () => {
       if (selectedTopic !== 'All') params.topic = selectedTopic
       const data = await flashcardService.list(params)
       setFlashcards(data)
-    } catch (err) {
+    } catch {
       // Fallback to empty — API may not be running
       setFlashcards([])
     } finally {
@@ -66,7 +66,6 @@ const FlashcardsPage = () => {
   const handleMaster = async (id) => {
     try {
       await flashcardService.toggleMastered(id)
-      await flashcardService.review(id)
       fetchFlashcards()
       handleNext()
       toast.success('Marked as mastered!')

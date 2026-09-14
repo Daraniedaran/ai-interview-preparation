@@ -1,35 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { 
-  RiAwardLine, 
-  RiFireLine, 
-  RiStarLine, 
-  RiLockLine, 
+import {
+  RiAwardLine,
+  RiLockLine,
   RiCheckLine,
   RiCopperCoinLine
 } from 'react-icons/ri'
 import api from '../../services/api'
 
 const AchievementsPage = () => {
-  const { data: achievementsData, isLoading } = useQuery({
+  const { data: achievementsData, isLoading, isError } = useQuery({
     queryKey: ['user-achievements'],
-    queryFn: () => api.get('/achievements/me').then(r => r.data).catch(() => null),
+    queryFn: () => api.get('/achievements/me').then(r => r.data),
+    retry: false,
   })
 
-  // Fallback preset badges if API data is loading or empty
-  const defaultBadges = [
-    { id: 1, title: 'Resume Ready', description: 'Uploaded and analyzed your first resume', icon: '📄', unlocked: true, category: 'Resume', points: 50 },
-    { id: 2, title: 'Aptitude Initiate', description: 'Completed 5 aptitude practice tests', icon: '🧠', unlocked: true, category: 'Aptitude', points: 100 },
-    { id: 3, title: 'Code Ninja', description: 'Solved 25 coding challenges with 100% test pass', icon: '💻', unlocked: true, category: 'Coding', points: 250 },
-    { id: 4, title: 'AI Interview Pioneer', description: 'Completed your first AI Mock Interview session', icon: '🤖', unlocked: true, category: 'Interview', points: 150 },
-    { id: 5, title: '7-Day Streak Master', description: 'Logged in and solved problems for 7 consecutive days', icon: '🔥', unlocked: true, category: 'Streak', points: 300 },
-    { id: 6, title: 'System Design Architect', description: 'Completed system design interview prep module', icon: '🏗️', unlocked: false, category: 'Interview', points: 400 },
-    { id: 7, title: 'Top 10% Leaderboard', description: 'Ranked in the top 10% on global leaderboard', icon: '🏆', unlocked: false, category: 'Ranking', points: 500 },
-    { id: 8, title: 'Speed Demon', description: 'Finished a 20-question aptitude test in under 10 minutes', icon: '⚡', unlocked: false, category: 'Aptitude', points: 200 },
-  ]
-
-  const achievements = achievementsData?.achievements || defaultBadges
-  const totalPoints = achievementsData?.total_points || achievements.filter(a => a.unlocked).reduce((acc, curr) => acc + curr.points, 0)
+  const achievements = achievementsData?.achievements || []
+  const totalPoints = achievementsData?.total_points ?? 0
   const unlockedCount = achievements.filter(a => a.unlocked).length
 
   return (
@@ -66,6 +53,27 @@ const AchievementsPage = () => {
       </div>
 
       {/* Badges Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card space-y-3">
+              <div className="h-10 w-10 skeleton rounded-xl" />
+              <div className="h-4 skeleton w-3/4" />
+              <div className="h-3 skeleton w-full" />
+            </div>
+          ))}
+        </div>
+      ) : isError ? (
+        <div className="card text-center py-12 text-gray-400">
+          <RiAwardLine className="text-5xl mx-auto mb-2 opacity-30" />
+          <p>Failed to load achievements. Please try again.</p>
+        </div>
+      ) : achievements.length === 0 ? (
+        <div className="card text-center py-12 text-gray-400">
+          <RiAwardLine className="text-5xl mx-auto mb-2 opacity-30" />
+          <p>No achievements yet. Complete tests, solve problems, and attend interviews to earn badges.</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {achievements.map((badge, idx) => (
           <motion.div
@@ -110,6 +118,7 @@ const AchievementsPage = () => {
           </motion.div>
         ))}
       </div>
+      )}
     </div>
   )
 }

@@ -88,7 +88,7 @@ async def create_task(
     return task
 
 
-@router.put("/{task_id}", response_model=TaskResponse)
+@router.put("/tasks/{task_id}", response_model=TaskResponse)
 async def update_task(
     task_id: int,
     data: TaskUpdate,

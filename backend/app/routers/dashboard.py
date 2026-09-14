@@ -12,7 +12,7 @@ from app.models.resume_review import ResumeReview
 from app.models.leaderboard import Leaderboard
 from app.models.achievement import UserAchievement, Achievement
 from app.models.notification import Notification
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -111,7 +111,7 @@ async def get_activity_data(
     current_user: User = Depends(get_current_user),
 ):
     """Get activity calendar data for the past N days."""
-    end_date = datetime.utcnow()
+    end_date = datetime.now(timezone.utc)
     start_date = end_date - timedelta(days=days)
 
     # Coding submissions per day
@@ -164,8 +164,8 @@ async def get_performance_charts(
     # Last 8 weeks of coding submissions
     weeks_data = []
     for i in range(7, -1, -1):
-        week_start = datetime.utcnow() - timedelta(weeks=i + 1)
-        week_end = datetime.utcnow() - timedelta(weeks=i)
+        week_start = datetime.now(timezone.utc) - timedelta(weeks=i + 1)
+        week_end = datetime.now(timezone.utc) - timedelta(weeks=i)
         solved = db.query(CodingSubmission).filter(
             CodingSubmission.user_id == current_user.id,
             CodingSubmission.status == SubmissionStatus.ACCEPTED,
@@ -242,10 +242,12 @@ async def get_recent_activity(
         .all()
     )
     for a in attempts:
+        score_val = a.score or 0
+        total_val = a.total_marks or 0
         activities.append({
             "type": "aptitude",
             "icon": "📝",
-            "title": f"Completed aptitude test — Score: {a.score:.0f}/{a.total_marks:.0f}",
+            "title": f"Completed aptitude test — Score: {score_val:.0f}/{total_val:.0f}",
             "timestamp": a.completed_at.isoformat() if a.completed_at else "",
         })
 
@@ -261,10 +263,11 @@ async def get_recent_activity(
         .all()
     )
     for i in interviews:
+        overall = i.overall_score or 0
         activities.append({
             "type": "interview",
             "icon": "🎤",
-            "title": f"Completed {i.interview_type.value} interview — Score: {i.overall_score:.0f}/100",
+            "title": f"Completed {i.interview_type.value} interview — Score: {overall:.0f}/100",
             "timestamp": i.completed_at.isoformat() if i.completed_at else "",
         })
 

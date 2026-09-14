@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { interviewService } from '../../services'
 import toast from 'react-hot-toast'
 import {
-  RiDownloadLine, RiCheckLine, RiCloseLine, RiLightbulbLine,
-  RiArrowLeftLine, RiAwardLine, RiStarFill
+  RiDownloadLine, RiCheckLine, RiCloseLine,
+  RiArrowLeftLine
 } from 'react-icons/ri'
 
 const InterviewReportPage = () => {

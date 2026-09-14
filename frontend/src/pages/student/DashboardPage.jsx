@@ -11,7 +11,7 @@ import { Bar, Radar } from 'react-chartjs-2'
 import {
   RiCodeLine, RiBrainLine, RiMicLine, RiFileTextLine,
   RiTrophyLine, RiFireLine, RiArrowRightLine, RiStarLine,
-  RiBarChartLine, RiCalendarLine, RiUserLine
+  RiBarChartLine
 } from 'react-icons/ri'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement,
@@ -114,7 +114,7 @@ const DashboardPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Welcome back, {user?.full_name?.split(' ')[0]}! 👋</h1>
-          <p className="page-subtitle">Here's your progress overview</p>
+          <p className="page-subtitle">Here&apos;s your progress overview</p>
         </div>
         <div className="flex items-center gap-2">
           {s.streak_days > 0 && (
@@ -143,15 +143,15 @@ const DashboardPage = () => {
       {/* Scores Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Aptitude Score', value: s.aptitude_score, color: 'primary', icon: RiBrainLine },
-          { label: 'Coding Score', value: s.coding_score, color: 'secondary', icon: RiCodeLine },
-          { label: 'Interview Score', value: s.interview_score, color: 'success', icon: RiMicLine },
-          { label: 'Resume Score', value: s.resume_score, color: 'warning', icon: RiFileTextLine },
-        ].map(({ label, value, color, icon: Icon }) => (
+          { label: 'Aptitude Score', value: s.aptitude_score, iconClass: 'text-primary-600', icon: RiBrainLine },
+          { label: 'Coding Score', value: s.coding_score, iconClass: 'text-secondary-600', icon: RiCodeLine },
+          { label: 'Interview Score', value: s.interview_score, iconClass: 'text-success-600', icon: RiMicLine },
+          { label: 'Resume Score', value: s.resume_score, iconClass: 'text-warning-600', icon: RiFileTextLine },
+        ].map(({ label, value, iconClass, icon: Icon }) => (
           <div key={label} className="card">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</span>
-              <Icon className={`text-${color}-600`} />
+              <Icon className={iconClass} />
             </div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
               {value?.toFixed(0) || 0}<span className="text-sm text-gray-400">/100</span>
@@ -229,7 +229,7 @@ const DashboardPage = () => {
             <Link to="/progress" className="text-xs text-primary-600 hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
-            {recentActivity?.slice(0, 5).map((activity, i) => (
+            {(Array.isArray(recentActivity) ? recentActivity : []).slice(0, 5).map((activity, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center text-lg">
                   {activity.icon}
@@ -247,9 +247,9 @@ const DashboardPage = () => {
                 )}
               </div>
             ))}
-            {!recentActivity?.length && (
+            {!Array.isArray(recentActivity) || !recentActivity.length ? (
               <p className="text-sm text-gray-400 text-center py-4">No recent activity. Start practicing!</p>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

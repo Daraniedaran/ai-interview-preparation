@@ -262,7 +262,7 @@ const LandingPage = () => {
                     <RiStarFill key={j} className="text-warning-500 text-sm" />
                   ))}
                 </div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">"{t.text}"</p>
+                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">&ldquo;{t.text}&rdquo;</p>
                 <div className="flex items-center gap-3">
                   <div className="avatar w-10 h-10 text-sm">{t.avatar}</div>
                   <div>

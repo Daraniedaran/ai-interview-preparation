@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 import { RiMailLine, RiLockLine, RiEyeLine, RiEyeOffLine, RiArrowRightLine } from 'react-icons/ri'
-import { motion } from 'framer-motion'
 
 const schema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email'),
@@ -140,7 +139,7 @@ const LoginPage = () => {
 
       {/* Footer */}
       <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-        Don't have an account?{' '}
+        Don&apos;t have an account?{' '}
         <Link to="/register" className="text-primary-600 font-medium hover:underline">
           Sign up free
         </Link>

@@ -16,7 +16,7 @@ from app.utils.ai_client import (
 )
 from app.utils.pdf_utils import generate_interview_report_pdf
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -91,6 +91,16 @@ async def submit_answer(
         raise HTTPException(status_code=404, detail="Interview not found")
     if interview.status == InterviewStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Interview already completed")
+    # Validate sequencing: prevent replay/skip/duplicate submissions
+    expected_q = (interview.answered_questions or 0) + 1
+    if data.question_number != expected_q:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid question_number. Expected {expected_q}, got {data.question_number}",
+        )
+    if interview.current_question_text and data.question_text != interview.current_question_text:
+        # Allow if resuming with stale fallback only when no current text was set
+        raise HTTPException(status_code=400, detail="question_text does not match current interview question")
 
     # Evaluate the answer
     evaluation = await evaluate_interview_answer(
@@ -155,10 +165,18 @@ async def submit_answer(
         interview.suggestions = summary.get("suggestions", [])
         interview.strengths = summary.get("strengths", [])
         interview.areas_to_improve = summary.get("areas_to_improve", [])
-        interview.completed_at = datetime.utcnow()
-        interview.duration_minutes = int(
-            (interview.completed_at - interview.started_at).total_seconds() / 60
-        )
+        interview.completed_at = datetime.now(timezone.utc)
+        try:
+            started = interview.started_at
+            ended = interview.completed_at
+            # SQLite server_default func.now() is naive; normalize to aware before subtracting
+            if started is not None and started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            if ended is not None and ended.tzinfo is None:
+                ended = ended.replace(tzinfo=timezone.utc)
+            interview.duration_minutes = int((ended - started).total_seconds() / 60) if started else 0
+        except Exception:
+            interview.duration_minutes = 0
 
         # Update student profile
         profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()

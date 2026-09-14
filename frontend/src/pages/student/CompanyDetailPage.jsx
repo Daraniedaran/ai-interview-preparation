@@ -1,14 +1,15 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { companyService } from '../../services'
-import { RiBuildingLine, RiStarFill, RiCheckLine, RiCodeLine, RiQuestionLine, RiArrowLeftLine } from 'react-icons/ri'
+import { RiStarFill, RiCheckLine, RiArrowLeftLine, RiErrorWarningLine } from 'react-icons/ri'
 
 const CompanyDetailPage = () => {
   const { slug } = useParams()
 
-  const { data: company, isLoading } = useQuery({
+  const { data: company, isLoading, isError } = useQuery({
     queryKey: ['company-detail', slug],
     queryFn: () => companyService.getBySlug(slug),
+    retry: false,
   })
 
   if (isLoading) {
@@ -19,7 +20,18 @@ const CompanyDetailPage = () => {
     )
   }
 
-  if (!company) return null
+  if (isError || !company) {
+    return (
+      <div className="max-w-2xl mx-auto card text-center py-12 space-y-3">
+        <RiErrorWarningLine className="text-4xl mx-auto text-gray-300" />
+        <h2 className="font-bold text-gray-900 dark:text-white">Company not found</h2>
+        <p className="text-sm text-gray-500">The company “{slug}” does not exist or was removed.</p>
+        <Link to="/companies" className="btn-secondary btn-sm inline-flex items-center gap-2">
+          <RiArrowLeftLine /> Back to Companies
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -39,7 +51,7 @@ const CompanyDetailPage = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-2xl bg-gradient-primary flex items-center justify-center text-white font-bold text-2xl">
-              {company.name[0]}
+              {company.name?.[0]?.toUpperCase() ?? '?'}
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{company.name}</h2>

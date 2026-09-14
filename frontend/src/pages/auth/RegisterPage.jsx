@@ -35,7 +35,7 @@ const RegisterPage = () => {
 
   const onSubmit = async (data) => {
     setIsLoading(true)
-    const { confirm_password, ...payload } = data
+    const { confirm_password: _confirm_password, ...payload } = data
     try {
       await registerUser(payload)
       toast.success('Account created! Check your email to verify. 🎉')

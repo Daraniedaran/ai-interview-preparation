@@ -9,7 +9,7 @@ from app.models.question import Question, QuestionCategory, Difficulty
 from app.models.leaderboard import Leaderboard
 from app.models.student_profile import StudentProfile
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -162,7 +162,7 @@ async def start_test(
 @router.post("/attempts/{attempt_id}/submit")
 async def submit_test(
     attempt_id: int,
-    answers: dict,  # {question_id: selected_answer}
+    payload: dict,  # accepts {question_id: answer} OR {"answers": {...}, "time_taken_seconds": N}
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -177,14 +177,40 @@ async def submit_test(
         raise HTTPException(status_code=400, detail="Test already submitted")
 
     test = db.query(AptitudeTest).filter(AptitudeTest.id == attempt.test_id).first()
-    question_ids = list(answers.keys())
-    questions = db.query(Question).filter(Question.id.in_(question_ids)).all()
+    if not test:
+        raise HTTPException(status_code=404, detail="Test not found for this attempt")
+    # Support both raw answers dict and wrapped {"answers": {...}, "time_taken_seconds": N}
+    if isinstance(payload, dict) and "answers" in payload and isinstance(payload["answers"], dict):
+        answers = payload["answers"]
+        time_taken = payload.get("time_taken_seconds", 0)
+    else:
+        answers = payload
+        time_taken = payload.get("time_taken_seconds", 0) if isinstance(payload, dict) else 0
+        # If time_taken was sent as a sibling key inside a raw dict, drop it from answers
+        if isinstance(answers, dict) and "time_taken_seconds" in answers:
+            answers = {k: v for k, v in answers.items() if k != "time_taken_seconds"}
+    try:
+        attempt.time_taken_seconds = int(time_taken or 0)
+    except (TypeError, ValueError):
+        attempt.time_taken_seconds = 0
+    # Normalize question ids to ints (Postgres is strict, clients send string keys)
+    raw_ids = list(answers.keys()) if isinstance(answers, dict) else []
+    question_ids: list[int] = []
+    for k in raw_ids:
+        try:
+            question_ids.append(int(str(k).strip()))
+        except (TypeError, ValueError):
+            continue
+    if isinstance(answers, dict) and question_ids and len(question_ids) != len(raw_ids):
+        # Drop non-numeric keys from answers to keep grading consistent
+        answers = {k: v for k, v in answers.items() if str(k).strip().lstrip("-").isdigit()}
+    questions = db.query(Question).filter(Question.id.in_(question_ids)).all() if question_ids else []
     q_map = {str(q.id): q for q in questions}
 
     score = 0.0
     correct = 0
     wrong = 0
-    unattempted = len(question_ids) - len(answers)
+    unattempted = 0
 
     for q_id, selected in answers.items():
         q = q_map.get(str(q_id))
@@ -207,7 +233,7 @@ async def submit_test(
     attempt.unattempted = unattempted
     attempt.answers = answers
     attempt.is_completed = True
-    attempt.completed_at = datetime.utcnow()
+    attempt.completed_at = datetime.now(timezone.utc)
 
     # Calculate percentile (simple approach)
     total_attempts = db.query(TestAttempt).filter(
@@ -224,30 +250,32 @@ async def submit_test(
     # Update student profile aptitude score
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
     if profile:
-        percentage = (score / test.total_marks * 100) if test.total_marks > 0 else 0
-        profile.aptitude_score = round((profile.aptitude_score + percentage) / 2, 1)
-        profile.total_points += correct * 5
+        total_marks_val = test.total_marks or 0
+        percentage = (score / total_marks_val * 100) if total_marks_val > 0 else 0
+        profile.aptitude_score = round(((profile.aptitude_score or 0) + percentage) / 2, 1)
+        profile.total_points = (profile.total_points or 0) + correct * 5
 
     # Update leaderboard
     lb = db.query(Leaderboard).filter(Leaderboard.user_id == current_user.id).first()
     if lb:
-        lb.total_points += correct * 5
-        lb.weekly_points += correct * 5
-        lb.monthly_points += correct * 5
-        lb.questions_solved += correct
-        lb.tests_taken += 1
+        lb.total_points = (lb.total_points or 0) + correct * 5
+        lb.weekly_points = (lb.weekly_points or 0) + correct * 5
+        lb.monthly_points = (lb.monthly_points or 0) + correct * 5
+        lb.questions_solved = (lb.questions_solved or 0) + correct
+        lb.tests_taken = (lb.tests_taken or 0) + 1
 
     db.commit()
 
+    total_marks_out = test.total_marks or 0
     return {
         "attempt_id": attempt_id,
         "score": score,
-        "total_marks": test.total_marks,
+        "total_marks": total_marks_out,
         "correct_answers": correct,
         "wrong_answers": wrong,
         "unattempted": unattempted,
         "percentile": attempt.percentile,
-        "percentage": round((score / test.total_marks * 100) if test.total_marks > 0 else 0, 1),
+        "percentage": round((score / total_marks_out * 100) if total_marks_out > 0 else 0, 1),
     }
 
 
@@ -285,11 +313,21 @@ async def create_test(
     admin: User = Depends(get_current_admin),
 ):
     """Admin: Create a new aptitude test."""
+    try:
+        category = QuestionCategory(data["category"])
+    except (KeyError, ValueError):
+        raise HTTPException(status_code=422, detail=f"Invalid category: {data.get('category')}")
+    try:
+        difficulty = Difficulty(data["difficulty"])
+    except (KeyError, ValueError):
+        raise HTTPException(status_code=422, detail=f"Invalid difficulty: {data.get('difficulty')}")
+    if not data.get("title"):
+        raise HTTPException(status_code=422, detail="title is required")
     test = AptitudeTest(
         title=data["title"],
         description=data.get("description"),
-        category=data["category"],
-        difficulty=data["difficulty"],
+        category=category,
+        difficulty=difficulty,
         duration_minutes=data.get("duration_minutes", 30),
         total_questions=data.get("total_questions", 20),
         total_marks=data.get("total_marks", 20.0),
