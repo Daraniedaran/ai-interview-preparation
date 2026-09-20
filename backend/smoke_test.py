@@ -8,6 +8,7 @@ Exits with code 0 when all checks pass, 1 otherwise.
 """
 import sys
 import time
+# pyrefly: ignore [missing-import]
 import httpx
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
