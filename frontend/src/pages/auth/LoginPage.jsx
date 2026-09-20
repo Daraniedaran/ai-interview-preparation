@@ -23,9 +23,13 @@ const LoginPage = () => {
   })
 
   const fillDemo = (email, password) => {
-    setValue('email', email)
-    setValue('password', password)
+    setValue('email', email, { shouldValidate: true })
+    setValue('password', password, { shouldValidate: true })
     toast('Credentials filled — hit Sign In', { icon: '✍️' })
+  }
+
+  const fillAdminHidden = () => {
+    fillDemo('admin@aiinterview.com', 'Admin@123')
   }
 
   const onSubmit = async (data) => {
@@ -49,7 +53,7 @@ const LoginPage = () => {
           <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-bold">AI</div>
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Sign in to continue your prep journey</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Sign in to continue <span onDoubleClick={fillAdminHidden} className="select-none">your</span> prep journey</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -117,25 +121,6 @@ const LoginPage = () => {
           )}
         </button>
       </form>
-
-      {/* Demo Credentials */}
-      <div className="mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-        <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1">Demo Credentials — click to autofill</p>
-        <button
-          type="button"
-          onClick={() => fillDemo('alice@example.com', 'Student@123')}
-          className="w-full text-left text-xs text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 hover:underline py-0.5"
-        >
-          Student: alice@example.com / Student@123
-        </button>
-        <button
-          type="button"
-          onClick={() => fillDemo('admin@aiinterview.com', 'Admin@123')}
-          className="w-full text-left text-xs text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 hover:underline py-0.5"
-        >
-          Admin: admin@aiinterview.com / Admin@123
-        </button>
-      </div>
 
       {/* Footer */}
       <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
